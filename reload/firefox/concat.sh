@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-files="README.txt background.js concat.sh icons/svg2npng.sh manifest.json "
+files="README.txt background.js icons/svg2npng.sh manifest.json"
 output_file=$rhd/project-contents.txt
 >$output_file
 for i in $files

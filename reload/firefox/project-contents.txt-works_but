@@ -1,0 +1,175 @@
+=============================
+ FILE: README.txt
+=============================
+Page Reloader Extension - Firefox Version
+==========================================
+
+1. Create a folder named "reloader-extension"
+2. Place all the provided files in the folder.
+3. Ensure you have the icons in the icons folder:
+   - icon16.png (16x16 pixels)
+   - icon48.png (48x48 pixels)
+   - icon128.png (128x128 pixels)
+
+4. Open Firefox and go to: about:debugging
+5. Click on "This Firefox" (left sidebar)
+6. Click "Load Temporary Add-on"
+7. Navigate to and select the manifest.json file in your "reloader-extension" folder
+8. The extension should appear in your toolbar
+
+To use: Click the extension icon to instantly reload the current tab
+
+OR for permanent installation:
+
+1. Package the extension as a ZIP file (rename to .xpi)
+2. Go to about:addons
+3. Click the gear icon → "Install Add-on From File"
+4. Select your .xpi file
+
+instant-reloader/
+├── manifest.json
+├── background.js
+└── icons/
+    ├── icon16.png
+    ├── icon48.png
+    └── icon128.png
+=============================
+ FILE: background.js
+=============================
+// Firefox uses 'browser' namespace instead of 'chrome'
+// This will work in both browsers
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
+// This handles the extension icon click
+browserAPI.action.onClicked.addListener((tab) => {
+  // Reload the current tab
+  browserAPI.tabs.reload(tab.id);
+  
+  // Optional: Show a brief notification (uncomment if desired)
+  // browserAPI.action.setBadgeText({ text: '↻', tabId: tab.id });
+  // setTimeout(() => {
+  //   browserAPI.action.setBadgeText({ text: '', tabId: tab.id });
+  // }, 500);
+});
+=============================
+ FILE: icons/svg2npng.sh
+=============================
+#!/usr/bin/bash
+
+# Check if ImageMagick is installed
+if ! command -v convert &> /dev/null; then
+    echo "ERROR: ImageMagick 'convert' command not found!"
+    echo "Install it with: sudo apt install imagemagick"
+    exit 1
+fi
+
+# Find source SVG
+SOURCE_SVG=$(ls *.svg 2>/dev/null | grep -v -- "-active" | head -n 1)
+echo $SOURCE_SVG
+
+if [ -z "$SOURCE_SVG" ]; then
+    echo "Error: No source SVG file found in this directory!"
+    exit 1
+fi
+
+OUTPUT_BASE="icon"
+INPUT_BASE="${SOURCE_SVG%.*}"
+SIZES=(16 32 48 128)
+
+echo "Found source: $SOURCE_SVG"
+echo "Output prefix: $OUTPUT_BASE"
+echo ""
+
+# Process standard icon
+echo "Processing: $SOURCE_SVG"
+for SIZE in "${SIZES[@]}"
+do
+    OUTPUT_FILE="${OUTPUT_BASE}${SIZE}.png"
+    echo -n "  Generating ${OUTPUT_FILE}... "
+    
+    convert -background none -resize "${SIZE}x${SIZE}" "$SOURCE_SVG" "$OUTPUT_FILE"
+    
+    if [ $? -eq 0 ] && [ -f "$OUTPUT_FILE" ]; then
+        FILE_SIZE=$(stat -f%z "$OUTPUT_FILE" 2>/dev/null || stat -c%s "$OUTPUT_FILE" 2>/dev/null)
+        if [ "$FILE_SIZE" -gt 100 ]; then
+            echo "✓ ($FILE_SIZE bytes)"
+        else
+            echo "✗ (file too small: $FILE_SIZE bytes)"
+        fi
+    else
+        echo "✗ (failed to create)"
+    fi
+done
+
+# Process active icon
+ACTIVE_SVG="${INPUT_BASE}-active.svg"
+if [ -f "$ACTIVE_SVG" ]; then
+    echo ""
+    echo "Processing: $ACTIVE_SVG"
+    for SIZE in "${SIZES[@]}"
+    do
+        OUTPUT_FILE="${OUTPUT_BASE}-active-${SIZE}.png"
+        echo -n "  Generating ${OUTPUT_FILE}... "
+        
+        convert -background none -resize "${SIZE}x${SIZE}" "$ACTIVE_SVG" "$OUTPUT_FILE"
+        
+        if [ $? -eq 0 ] && [ -f "$OUTPUT_FILE" ]; then
+            FILE_SIZE=$(stat -f%z "$OUTPUT_FILE" 2>/dev/null || stat -c%s "$OUTPUT_FILE" 2>/dev/null)
+            if [ "$FILE_SIZE" -gt 100 ]; then
+                echo "✓ ($FILE_SIZE bytes)"
+            else
+                echo "✗ (file too small: $FILE_SIZE bytes)"
+            fi
+        else
+            echo "✗ (failed to create)"
+        fi
+    done
+else
+    echo ""
+    echo "Skipping active icons ($ACTIVE_SVG not found)"
+fi
+
+echo ""
+echo "Done! Verify all files:"
+ls -lh ${OUTPUT_BASE}*.png
+=============================
+ FILE: manifest.json
+=============================
+{
+  "manifest_version": 3,
+  "name": "My Page Reloader",
+  "version": "1.0",
+  "description": "Click the icon to instantly reload the current page",
+  "permissions": ["activeTab"],
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Click to reload page"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "page-reloader@example.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}
+=============================
+ ls ./icons/
+=============================
+icon.svg
+icon128.png
+icon16.png
+icon32.png
+icon48.png
